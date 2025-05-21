@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FGO Guess Game</title>
+<style>
+  body {
+    font-family: sans-serif;
+    background: #333334;
+    margin: 20px;
+    text-align: center;
+  }
+  h1 {
+    margin-bottom: 15px;
+    color: #95a9be;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  }
+  #character-selection {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #333334;
+    background: #333334;
+    padding: 10px;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  #character-selection img {
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    border-radius: 8px;
+    transition: border-color 0.2s;
+    user-select: none;
+  }
+  #character-selection img.selected {
+    border-color: #007bff;
+    filter: drop-shadow(0 0 4px #007bff);
+  }
+  #game-area {
+    display: none;
+    margin-top: 20px;
+  }
+  .board-section {
+    margin-bottom: 20px;
+  }
+  .board-section h2 {
+    margin-bottom: 8px;
+  }
+  .board-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+  .character-img {
+    width: 150px;
+    height: 150px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: filter 0.3s;
+    user-select: none;
+  }
+  .character-img.dimmed {
+    filter: brightness(40%);
+  }
+  button {
+    padding: 10px 20px;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin: 5px;
+  }
+  button:disabled {
+    background: #999;
+    cursor: default;
+  }
+  #logo-top-right {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    height: 50px;
+    width: auto;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    z-index: 1000;
+  }
+</style>
+</head>
+<body>
+
+<img id="logo-top-right" src="images/logo.png" alt="Logo" />
+
+
+<h1>FGO Guess Game</h1>
+
+<div id="character-selection"></div>
+<button id="start-game-btn" disabled>Start Game</button>
+
+<div id="game-area">
+  <div class="board-section">
+    <h2>Your Board</h2>
+    <div id="board-characters" class="board-list"></div>
+  </div>
+
+  <div class="board-section">
+    <h2>Your Operator (Target)</h2>
+    <img id="operator-character" class="character-img" src="" alt="Your Operator Character" />
+  </div>
+
+  <button id="end-game-btn">End Game</button>
+</div>
+
+<script>
+  const characters = [
+    { name: "Mash", image: "images/mash.png" },
+    { name: "Artoria Saber", image: "images/Saber/artoria(saber).png" },
+    { name: "Artoria Alter", image: "images/Saber/artoria(saber(alter)).png" },
+    { name: "Nero", image: "images/Saber/nero.png" },
+    { name: "Artoria Lily", image: "images/Saber/artorialily.png" },
+    { name: "Siegfried", image: "images/Saber/siegfried.png" },
+    { name: "Altera", image: "images/Saber/altera.png" },
+    { name: "Gilles", image: "images/Saber/gil.png" },
+    { name: "Chevalier", image: "images/Saber/chevalier.png" },
+    { name: "Okita Soji", image: "images/Saber/okita soji.png" },
+    { name: "Fergus", image: "images/Saber/fergus.png" },
+    { name: "Mordred", image: "images/Saber/mordred.png" },
+    { name: "Nero Bride", image: "images/Saber/nerobridge.png" },
+    { name: "Ryogo Shiki", image: "images/Saber/shiki.png" },
+    { name: "Rama", image: "images/Saber/rama.png" },
+    { name: "Lancelot", image: "images/Saber/lancelot.png" },
+    { name: "Gawain", image: "images/Saber/gawain.png" },
+    { name: "Bedivere", image: "images/Saber/bedivere.png" },
+    { name: "Elizabeth Brave", image: "images/Saber/elizabethbrave.png" },
+    { name: "Miyamoto Musashi", image: "images/Saber/musashi.png" },
+    { name: "ArthurPrototype", image: "images/Saber/arthurproto.png" },
+    { name: "Suzuka Gozen", image: "images/Saber/suzuka.png" },
+    { name: "Frankenstain", image: "images/Saber/franken.png" },
+    { name: "Yagyu Tajima", image: "images/Saber/yagyu.png" },
+    { name: "Sigurd", image: "images/Saber/sigurd.png" },
+    { name: "Queen Medb", image: "images/Saber/medb.png" },
+    { name: "Diarmuid", image: "images/Saber/diarmuid.png" },
+    { name: "Lanling Wang", image: "images/Saber/lanling.png" },
+    { name: "Beni-Enma", image: "images/Saber/beni.png" },
+    { name: "Lakshmibai", image: "images/Saber/lakshmibai.png" },
+    { name: "Jason", image: "images/Saber/jason.png" },
+    { name: "Katsushika Hokusai", image: "images/Saber/hokusai.png" },
+    { name: "Astolfo", image: "images/Saber/astolfo.png" },
+    { name: "Dioscuri", image: "images/Saber/dioscuri.png" },
+    { name: "Tomoe Gozen", image: "images/Saber/tomoe.png" },
+    { name: "Saito Hajime", image: "images/Saber/saito.png" },
+    { name: "Watanabe", image: "images/Saber/watanabe.png" },
+    { name: "Ibuki Doji", image: "images/Saber/ibuki.png" },
+    { name: "Karna Santa", image: "images/Saber/karnasanta.png" },
+    { name: "Senju Muramasa", image: "images/Saber/senju.png" },
+    { name: "Barghest", image: "images/Saber/barghest.png" },
+    { name: "Okita Soji Alter", image: "images/Saber/okitaalter.png" },
+    { name: "Trung Sisters", image: "images/Saber/trung.png" },
+    { name: "Charlemagne", image: "images/Saber/charlemagne.png" },
+    { name: "Roland", image: "images/Saber/roland.png" },
+    { name: "Gareth", image: "images/Saber/gareth.png" },
+    { name: "Yamanami Keisuke", image: "images/Saber/keisuke.png" },
+    { name: "Setanta", image: "images/Saber/setanta.png" },
+    { name: "Medusa", image: "images/Saber/medusa.png" },
+    { name: "Theseus", image: "images/Saber/theseus.png" },
+    { name: "Yamato Takeru", image: "images/Saber/yamato.png" },
+    { name: "Miyaoto Iori", image: "images/Saber/iori.png" },
+    { name: "Richard 1", image: "images/Saber/richard.png" },
+    { name: "Kurohime", image: "images/Saber/kurohime.png" },
+  { name: "Tutankhamun", image: "images/Archer/tutankhamun.png" },
+  { name: "Saika Magoichi", image: "images/Archer/saikamagoichi.png" },
+  { name: "Sugitani Zenjūbō", image: "images/Archer/sugitani.png" },
+  { name: "Ptolemaios", image: "images/Archer/ptolemaios.png" },
+  { name: "UDK-Barghest", image: "images/Archer/udkbarghest.png" },
+  { name: "Durga", image: "images/Archer/durga.png" },
+  { name: "Takasugi Shinsaku", image: "images/Archer/takasugi.png" },
+  { name: "Minamoto no Tametomo", image: "images/Archer/minamotonotametomo.png" },
+  { name: "Zenobia", image: "images/Archer/zenobia.png" },
+  { name: "Anastasia & Viy", image: "images/Archer/anastasiaviy.png" },
+  { name: "Baobhan Sith", image: "images/Archer/baobhansith.png" },
+  { name: "Oda Nobukatsu", image: "images/Archer/nobukatsu.png" },
+  { name: "Illyasviel von Einzbern", image: "images/Archer/ilyasviel.png" },
+  { name: "Sei Shōnagon", image: "images/Archer/seishonagon.png" },
+  { name: "Super Orion", image: "images/Archer/superorion.png" },
+  { name: "Nightingale (Santa)", image: "images/Archer/nightingle.png" },
+  { name: "Calamity Jane", image: "images/Archer/calamityjane.png" },
+  { name: "Osakabehime (Archer)", image: "images/Archer/osakabehime.png" },
+  { name: "Paris", image: "images/Archer/paris.png" },
+  { name: "Aśvatthāman", image: "images/Archer/asvatthaman.png" },
+  { name: "William Tell", image: "images/Archer/william.png" },
+  { name: "Jeanne d'Arc (Archer)", image: "images/Archer/jeanne.png" },
+  { name: "Napoléon", image: "images/Archer/napoleon.png" },
+  { name: "Chiron", image: "images/Archer/chiron.png" },
+  { name: "Asagami Fujino", image: "images/Archer/asagami.png" },
+  { name: "Altera the San(ta)", image: "images/Archer/alterasanta.png" },
+  { name: "Tomoe Gozen", image: "images/Archer/tomoe.png" },
+  { name: "Helena Blavatsky (Archer)", image: "images/Archer/helena.png" },
+  { name: "EMIYA (Alter)", image: "images/Archer/emiyaalter.png" },
+  { name: "James Moriarty", image: "images/Archer/james.png" },
+  { name: "Ishtar", image: "images/Archer/ishtar.png" },
+  { name: "Chloe von Einzbern", image: "images/Archer/chloe.png" },
+  { name: "Anne Bonny & Mary Read (Archer)", image: "images/Archer/annemary.png" },
+  { name: "Artoria Pendragon (Archer)", image: "images/Archer/artoria.png" },
+  { name: "Tawara Tōta", image: "images/Archer/tawara.png" },
+  { name: "Tristan", image: "images/Archer/tristan.png" },
+  { name: "Billy the Kid", image: "images/Archer/billy.png" },
+  { name: "Gilgamesh (Kid)", image: "images/Archer/gil.png" },
+  { name: "Arjuna", image: "images/Archer/arjuna.png" },
+  { name: "Nikola Tesla", image: "images/Archer/nikola.png" },
+  { name: "Oda Nobunaga", image: "images/Archer/oda.png" },
+  { name: "David", image: "images/Archer/david.png" },
+  { name: "Orion", image: "images/Archer/orion.png" },
+  { name: "Arash", image: "images/Archer/arash.png" },
+  { name: "Euryale", image: "images/Archer/euryale.png" },
+  { name: "Atalanta", image: "images/Archer/atalanta.png" },
+  { name: "Robin Hood", image: "images/Archer/robin.png" },
+  { name: "Gilgamesh", image: "images/Archer/gilgamesh.png" },
+  { name: "EMIYA", image: "images/Archer/emiya.png" },
+  { name: "Biscione", image: "images/Lancer/biscione.png" },
+  { name: "Van Gogh", image: "images/Lancer/vangoghm.png" },
+  { name: "Nikitich", image: "images/Lancer/nikitich.png" },
+  { name: "Bhima", image: "images/Lancer/bhima.png" },
+  { name: "Britomart", image: "images/Lancer/britomart.png" },
+  { name: "Don Quixote", image: "images/Lancer/donquixote.png" },
+  { name: "Mary", image: "images/Lancer/mary.png" },
+  { name: "Ryoma", image: "images/Lancer/ryoma.png" },
+  { name: "Percival", image: "images/Lancer/percival.png" },
+  { name: "Melusine", image: "images/Lancer/melusine.png" },
+  { name: "Vritra", image: "images/Lancer/vritra.png" },
+  { name: "Consort Yu", image: "images/Lancer/consortyu.png" },
+  { name: "Erice", image: "images/Lancer/erice.png" },
+  { name: "Romulus Quirinus", image: "images/Lancer/romulusq.png" },
+  { name: "Caenis", image: "images/Lancer/caenis.png" },
+  { name: "Meltlilith (Alter Ego)", image: "images/Lancer/malterego.png" },
+  { name: "Gareth", image: "images/Lancer/gareth.png" },
+  { name: "Kagetora", image: "images/Lancer/kagetora.png" },
+  { name: "Bradamante", image: "images/Lancer/bradamante.png" },
+  { name: "Qin Liangyu", image: "images/Lancer/qinliangyu.png" },
+  { name: "Ibaraki Dōji", image: "images/Lancer/ibarakidoji.png" },
+  { name: "Valkyrie", image: "images/Lancer/valkyrie.png" },
+  { name: "Ereshkigal", image: "images/Lancer/ereshkigal.png" },
+  { name: "Nezha", image: "images/Lancer/nezha.png" },
+  { name: "Hōzōin Inshun", image: "images/Lancer/hozoin.png" },
+  { name: "Parvati", image: "images/Lancer/parvati.png" },
+  { name: "Minamoto no Raikou (Lancer)", image: "images/Lancer/raikou.png" },
+  { name: "Jaguar Man", image: "images/Lancer/jaguarman.png" },
+  { name: "Medusa (Lancer)", image: "images/Lancer/medusa.png" },
+  { name: "Enkidu", image: "images/Lancer/enkidu.png" },
+  { name: "Jeanne d'Arc (Santa Lily)", image: "images/Lancer/jeannesanta.png" },
+  { name: "Vlad III", image: "images/Lancer/vlad3.png" },
+  { name: "Kiyohime (Lancer)", image: "images/Lancer/kiyohime.png" },
+  { name: "Tamamo no Mae (Lancer)", image: "images/Lancer/tamamonomae.png" },
+  { name: "Artoria Pendragon (Lancer)", image: "images/Lancer/artoriapendragon.png" },
+  { name: "Li Shuwen", image: "images/Lancer/lishuwen.png" },
+  { name: "Brynhildr", image: "images/Lancer/brynhildr.png" },
+  { name: "Fionn mac Cumhaill", image: "images/Lancer/fionn.png" },
+  { name: "Karna", image: "images/Lancer/karna.png" },
+  { name: "Artoria Pendragon (Lancer Alter)", image: "images/Lancer/artorialanceralter.png" },
+  { name: "Diarmuid Ua Duibhne", image: "images/Lancer/diarmuid.png" },
+  { name: "Scáthach", image: "images/Lancer/scathach.png" },
+  { name: "Hector", image: "images/Lancer/hector.png" },
+  { name: "Romulus", image: "images/Lancer/romulus.png" },
+  { name: "Leonidas", image: "images/Lancer/leonidas.png" },
+  { name: "Cú Chulainn (Prototype)", image: "images/Lancer/cuchulainnproto.png" },
+  { name: "Benkei", image: "images/Lancer/benkei.png" },
+  { name: "Elizabeth Báthory", image: "images/Lancer/elizabth.png" },
+  { name: "Cú Chulainn", image: "images/Lancer/cuchulainn.png" },
+  { name: "King Ashoka", image: "images/Lancer/kingashoka.png" },
+  { name: "Andromeda", image: "images/Rider/andromeda.png" },
+  { name: "Nemo (Santa)", image: "images/Rider/nemosanta.png" },
+  { name: "Shingen", image: "images/Rider/shingen.png" },
+  { name: "Suzuka Gozen (Summer)", image: "images/Rider/suzukasummer.png" },
+  { name: "Huang Feihu", image: "images/Rider/huang.png" },
+  { name: "Bakin", image: "images/Rider/bakin.png" },
+  { name: "Constantine XI", image: "images/Rider/constantine.png" },
+  { name: "Nikitich", image: "images/Rider/nikitichr.png" },
+  { name: "Taigong Wang", image: "images/Rider/taigongwang.png" },
+  { name: "Elizabeth Báthory (Cinderella)", image: "images/Rider/elizabethcind.png" },
+  { name: "Caenis", image: "images/Rider/caenisr.png" },
+  { name: "Habertrot", image: "images/Rider/habetrot.png" },
+  { name: "Nemo", image: "images/Rider/nemo.png" },
+  { name: "Shikibu (Summer)", image: "images/Rider/shikibu.png" },
+  { name: "Odysseus", image: "images/Rider/odysseus.png" },
+  { name: "Europa", image: "images/Rider/europa.png" },
+  { name: "Mandricardo", image: "images/Rider/mandricardo.png" },
+  { name: "Carmilla (Summer)", image: "images/Rider/carmilla.png" },
+  { name: "Roberts", image: "images/Rider/roberts.png" },
+  { name: "Leonardo da Vinci (Rider)", image: "images/Rider/davinci.png" },
+  { name: "Sima Yi (Reines)", image: "images/Rider/simayi.png" },
+  { name: "Red Hare", image: "images/Rider/redhare.png" },
+  { name: "Ryoma (Rider)", image: "images/Rider/ryomar.png" },
+  { name: "Achilles", image: "images/Rider/achilles.png" },
+  { name: "Ivan the Terrible", image: "images/Rider/ivan.png" },
+  { name: "Ishtar (Rider)", image: "images/Rider/ishtarr.png" },
+  { name: "Artoria Pendragon (Rider Alter)", image: "images/Rider/artoriaralter.png" },
+  { name: "Christopher Columbus", image: "images/Rider/columbus.png" },
+  { name: "Quetzalcoatl", image: "images/Rider/quetz.png" },
+  { name: "Mordred (Rider)", image: "images/Rider/mordredr.png" },
+  { name: "Ozymandias", image: "images/Rider/ozy.png" },
+  { name: "Kintoki (Rider)", image: "images/Rider/kintoki.png" },
+  { name: "Iskandar", image: "images/Rider/iskandar.png" },
+  { name: "Medb", image: "images/Rider/medb.png" },
+  { name: "Astolfo", image: "images/Rider/astolfo.png" },
+  { name: "Artoria Pendragon (Santa Alter)", image: "images/Rider/artoriasantaalter.png" },
+  { name: "Anne Bonny & Mary Read", image: "images/Rider/annemary.png" },
+  { name: "Francis Drake", image: "images/Rider/drake.png" },
+  { name: "Martha (Rider)", image: "images/Rider/martha.png" },
+  { name: "Marie Antoinette", image: "images/Rider/marie.png" },
+  { name: "Alexander", image: "images/Rider/alexander.png" },
+  { name: "Ushiwakamaru", image: "images/Rider/ushiwakamaru.png" },
+  { name: "Boudica", image: "images/Rider/boudica.png" },
+  { name: "Edward Teach", image: "images/Rider/teach.png" },
+  { name: "Saint George", image: "images/Rider/georgios.png" },
+  { name: "Medusa (Rider)", image: "images/Rider/medusarider.png" },
+  { name: "Ono no Takamura", image: "images/Caster/ono.png" },
+  { name: "Alice", image: "images/Caster/alice.png" },
+  { name: "Yui Shousetsu", image: "images/Caster/yui.png" },
+  { name: "Aesc", image: "images/Caster/aesc.png" },
+  { name: "Wuzetian (Caster)", image: "images/Caster/wuzetian.png" },
+  { name: "Zhang Jue", image: "images/Caster/zhangjue.png" },
+  { name: "Daikokuten", image: "images/Caster/daikokuten.png" },
+  { name: "Martha (Santa)", image: "images/Caster/marthasanta.png" },
+  { name: "Izumi Shikibu", image: "images/Caster/izumi.png" },
+  { name: "Marie (Caster)", image: "images/Caster/mariec.png" },
+  { name: "Ilyasviel (Caster)", image: "images/Caster/ilyac.png" },
+  { name: "Gilgamesh (Caster)", image: "images/Caster/gilgameshc.png" },
+  { name: "Merlin (Prototype)", image: "images/Caster/merlinproto.png" },
+  { name: "Merlin", image: "images/Caster/merlin.png" },
+  { name: "Solomon", image: "images/Caster/solomon.png" },
+  { name: "Scheherazade", image: "images/Caster/scheherazade.png" },
+  { name: "Nero Claudius (Caster)", image: "images/Caster/neroc.png" },
+  { name: "Circe", image: "images/Caster/circe.png" },
+  { name: "Sheba", image: "images/Caster/sheba.png" },
+  { name: "Anastasia", image: "images/Caster/anastasia.png" },
+  { name: "Avicebron", image: "images/Caster/aviceborn.png" },
+  { name: "Sieg", image: "images/Caster/sieg.png" },
+  { name: "Skadi (Caster)", image: "images/Caster/skadi.png" },
+  { name: "Shuten Douji (Caster)", image: "images/Caster/shutenc.png" },
+  { name: "Miyu Edelfelt", image: "images/Caster/miyu.png" },
+  { name: "Shikibu (Caster)", image: "images/Caster/shikibuc.png" },
+  { name: "Asclepius", image: "images/Caster/asclepius.png" },
+  { name: "Cheng Gong", image: "images/Caster/chengong.png" },
+  { name: "Castoria", image: "images/Caster/castoria.png" },
+  { name: "Crane", image: "images/Caster/crane.png" },
+  { name: "Corday (Caster)", image: "images/Caster/corday.png" },
+  { name: "Thomas Edison", image: "images/Caster/thomas.png" },
+  { name: "Helena Blavatsky", image: "images/Caster/helena.png" },
+  { name: "Charles Babbage", image: "images/Caster/charles.png" },
+  { name: "Paracelsus von Hohenheim", image: "images/Caster/hohenheim.png" },
+  { name: "Rhyme", image: "images/Caster/ryhme.png" },
+  { name: "Medea (Lily)", image: "images/Caster/medealily.png" },
+  { name: "Tamamo Cat (Caster)", image: "images/Caster/tamamoc.png" },
+  { name: "Elizabeth Bathory (Halloween)", image: "images/Caster/elizabethhalo.png" },
+  { name: "Cú Chulainn (Caster)", image: "images/Caster/cuchulainnc.png" },
+  { name: "Zhuge Liang (El-Melloi II)", image: "images/Caster/zhugeliang.png" },
+  { name: "Wolfgang Amadeus Mozart", image: "images/Caster/mozart.png" },
+  { name: "Mephistopheles", image: "images/Caster/mephis.png" },
+  { name: "William Shakespeare", image: "images/Caster/william.png" },
+  { name: "Hans Christian Andersen", image: "images/Caster/hans.png" },
+  { name: "Gilgamesh (Caster)", image: "images/Caster/gil.png" },
+  { name: "Medea", image: "images/Caster/medea.png" },
+  { name: "Da Vinci (Caster)", image: "images/Caster/davincic.png" },
+  { name: "Nitocris", image: "images/Caster/nitocris.png" },
+  { name: "Xuanzang Sanzang", image: "images/Caster/xuanzang.png" },
+  { name: "Irisviel (Dress of Heaven)", image: "images/Caster/irisviel.png" },
+  { name: "Geronimo", image: "images/Caster/geronime.png" },
+  { name: "Hassan of the Serenity", image: "images/Assassin/hassanserenity.png" },
+  { name: "Hassan of the Cursed Arm", image: "images/Assassin/hassancursedarm.png" },
+  { name: "Hassan of the Hundred Faces", image: "images/Assassin/hassanhundredface.png" },
+  { name: "Hassan of the Star", image: "images/Assassin/hassanstar.png" },
+  { name: "Hassan", image: "images/Assassin/hassan.png" },
+  { name: "Kama", image: "images/Assassin/kama.png" },
+  { name: "Semiramis", image: "images/Assassin/semiramis.png" },
+  { name: "Shiki Ryougi (Assassin)", image: "images/Assassin/shikis.png" },
+  { name: "Shuten Douji (Assassin)", image: "images/Assassin/shutendojia.png" },
+  { name: "Jack the Ripper", image: "images/Assassin/jacktheripper.png" },
+  { name: "Koyanskaya of Light", image: "images/Assassin/koyanlight.png" },
+  { name: "Cleopatra", image: "images/Assassin/cleopatra.png" },
+  { name: "Scathach (Assassin)", image: "images/Assassin/scatactha.png" },
+  { name: "Carmilla", image: "images/Assassin/carmillas.png" },
+  { name: "Mata Hari", image: "images/Assassin/matahari.png" },
+  { name: "Okada Izo", image: "images/Assassin/okadaizo.png" },
+  { name: "Sasaki Kojirou", image: "images/Assassin/sasaki.png" },
+  { name: "Yan Qing", image: "images/Assassin/yanqing.png" },
+  { name: "Chiyome Mochizuki", image: "images/Assassin/chiyome.png" },
+  { name: "Danzo", image: "images/Assassin/danzo.png" },
+  { name: "Osakabehime", image: "images/Assassin/osakabehimea.png" },
+  { name: "Okita J Souji", image: "images/Assassin/okitajsoji.png" },
+  { name: "Kashin Koji", image: "images/Assassin/kashinkoji.png" },
+  { name: "Locusta", image: "images/Assassin/locusta.png" },
+  { name: "Tezcatlipoca", image: "images/Assassin/tezcatlipoca.png" },
+  { name: "Huyan Zhuo", image: "images/Assassin/huyanzhuo.png" },
+  { name: "Sanson", image: "images/Assassin/sanson.png" },
+  { name: "Gray", image: "images/Assassin/gray.png" },
+  { name: "Koyanskaya (Light)", image: "images/Assassin/koyanlight.png" },
+  { name: "Phantom of the Opera", image: "images/Assassin/phantomopera.png" },
+  { name: "Stheno", image: "images/Assassin/stheno.png" },
+  { name: "Jing Ke", image: "images/Assassin/jingke.png" },
+  { name: "Hogen", image: "images/Assassin/hogen.png" },
+  { name: "Lishuwen (Assassin)", image: "images/Assassin/lishuwen.png" },
+  { name: "Consort Yu (Assassin)", image: "images/Assassin/consortyua.png" },
+  { name: "Ushiwakamaru (Assassin)", image: "images/Assassin/ushiwakamarua.png" },
+  { name: "Emiya (Assassin)", image: "images/Assassin/emiyas.png" },
+  { name: "Heroine X", image: "images/Assassin/heroinex.png" },
+  { name: "Jekyll & Hyde", image: "images/Assassin/jekyllhyde.png" },
+  { name: "Stheno", image: "images/Assassin/stheno.png" },
+  { name: "Thrúd", image: "images/Assassin/thrud.png" },
+  { name: "Hildr", image: "images/Assassin/hildr.png" },
+  { name: "Ortinde", image: "images/Assassin/ortlinde.png" },
+  { name: "Fuma Kotarou", image: "images/Assassin/fuma.png" },
+  { name: "Lilith", image: "images/Berserker/lilith.png" },
+  { name: "Shinpachi", image: "images/Berserker/shinpachi.png" },
+  { name: "Castoria (Berserker)", image: "images/Berserker/castoriab.png" },
+  { name: "Duryodhana", image: "images/Berserker/duryodhana.png" },
+  { name: "Rikyu", image: "images/Berserker/rikyu.png" },
+  { name: "Ibuki Douji (Berserker)", image: "images/Berserker/ibukidojib.png" },
+  { name: "Kriemhild", image: "images/Berserker/kriemhild.png" },
+  { name: "Sei Shounagon (Berserker)", image: "images/Berserker/seishonagon.png" },
+  { name: "Morgan", image: "images/Berserker/morgan.png" },
+  { name: "Galatea", image: "images/Berserker/galatea.png" },
+  { name: "Brynnhildr (Berserker)", image: "images/Berserker/brynhilder.png" },
+  { name: "Kijyo Koyo", image: "images/Berserker/kijyo.png" },
+  { name: "Musashi (Berserker)", image: "images/Berserker/musashib.png" },
+  { name: "Salome", image: "images/Berserker/salome.png" },
+  { name: "Mori Nagayoshi", image: "images/Berserker/mori.png" },
+  { name: "Arjuna (Alter)", image: "images/Berserker/arjunaalter.png" },
+  { name: "Xiang Yu", image: "images/Berserker/xiangyu.png" },
+  { name: "Jeanne d'Arc (Alter)", image: "images/Berserker/jeannealter.png" },
+  { name: "Atalanta (Alter)", image: "images/Berserker/atalantaalter.png" },
+  { name: "Odysseus (Berserker)", image: "images/Berserker/odab.png" },
+  { name: "Paul Bunyan", image: "images/Berserker/paul.png" },
+  { name: "Penthesilea", image: "images/Berserker/penthesilea.png" },
+  { name: "Chacha", image: "images/Berserker/chacha.png" },
+  { name: "Hijikata Toshizou", image: "images/Berserker/hijikata.png" },
+  { name: "Heroine X (Alter)", image: "images/Berserker/heroinexalter.png" },
+  { name: "Ibaraki Douji (Berserker)", image: "images/Berserker/ibarakidoji.png" },
+  { name: "Minamoto no Raikou (Berserker)", image: "images/Berserker/raikoub.png" },
+  { name: "Cú Chulainn (Alter)", image: "images/Berserker/cuchulainnalter.png" },
+  { name: "Nightingale", image: "images/Berserker/nightingle.png" },
+  { name: "Beowulf", image: "images/Berserker/beowulf.png" },
+  { name: "Frankenstein", image: "images/Berserker/frankenstain.png" },
+  { name: "Tamamo Cat", image: "images/Berserker/tamamocat.png" },
+  { name: "Eric Bloodaxe", image: "images/Berserker/eric.png" },
+  { name: "Kiyohime (Berserker)", image: "images/Berserker/kiyohime.png" },
+  { name: "Darius III", image: "images/Berserker/darius.png" },
+  { name: "Caligula", image: "images/Berserker/caligula.png" },
+  { name: "Asterios", image: "images/Berserker/asterios.png" },
+  { name: "Vlad III (Berserker)", image: "images/Berserker/vlad3.png" },
+  { name: "Kintoki (Berserker)", image: "images/Berserker/kintokib.png" },
+  { name: "Leonidas (Spartacus?)", image: "images/Berserker/sparta.png" },
+  { name: "Lu Bu", image: "images/Berserker/lubu.png" },
+  { name: "Lancelot (Berserker)", image: "images/Berserker/lancelot.png" },
+  { name: "Heracles", image: "images/Berserker/heracles.png" },
+  { name: "Jeanne d'Arc (Santa Lily)", image: "images/Ruler/metajeanne.png" },
+  { name: "Uesugi Kenshin (Ruler)", image: "images/Ruler/kenshin.png" },
+  { name: "Melusine (Ruler)", image: "images/Ruler/melusiner.png" },
+  { name: "Johanna", image: "images/Ruler/johanna.png" },
+  { name: "Iyo", image: "images/Ruler/iyo.png" },
+  { name: "Scáthach-Skadi (Ruler)", image: "images/Ruler/skadir.png" },
+  { name: "James Moriarty (Ruler)", image: "images/Ruler/moriarty.png" },
+  { name: "Leonardo da Vinci (Ruler)", image: "images/Ruler/davincir.png" },
+  { name: "Caren C. Hortensia", image: "images/Ruler/caren.png" },
+  { name: "Himiko", image: "images/Ruler/himiko.png" },
+  { name: "Artoria Pendragon (Ruler)", image: "images/Ruler/artoriar.png" },
+  { name: "Astraea", image: "images/Ruler/astraea.png" },
+  { name: "Quetzalcoatl (Samba/Santa)", image: "images/Ruler/quetzalcoatlsanta.png" },
+  { name: "Qin Shi Huang", image: "images/Ruler/shihuangdi.png" },
+  { name: "Sherlock Holmes", image: "images/Ruler/holmes.png" },
+  { name: "Saint Martha (Ruler)", image: "images/Ruler/martha.png" },
+  { name: "Amakusa Shirou", image: "images/Ruler/amakusa.png" },
+  { name: "Jeanne d'Arc", image: "images/Ruler/jeanner.png" },
+  { name: "Xufu", image: "images/Avenger/xufua.png" },
+  { name: "Count of Monte Cristo (Dantes)", image: "images/Avenger/montecristo.png" },
+  { name: "Marie Antoinette (Alter)", image: "images/Avenger/mariealter.png" },
+  { name: "Ushiwakamaru (Avenger)", image: "images/Avenger/ushigozen.png" },
+  { name: "Chloe von Einzbern (Avenger)", image: "images/Avenger/chloea.png" },
+  { name: "Nitocris (Alter)", image: "images/Avenger/nitocrisalter.png" },
+  { name: "Erice Utsumi", image: "images/Avenger/ericaa.png" },
+  { name: "Ranmaru X", image: "images/Avenger/ranmarux.png" },
+  { name: "Kama (Avenger)", image: "images/Avenger/kama.png" },
+  { name: "Taira no Kagekiyo", image: "images/Avenger/taira.png" },
+  { name: "Space Ishtar", image: "images/Avenger/spaceishtar.png" },
+  { name: "Oda Nobunaga (Demon King)", image: "images/Avenger/nobunagadk.png" },
+  { name: "Antonio Salieri", image: "images/Avenger/salieri.png" },
+  { name: "Lobo (Hessian)", image: "images/Avenger/lobo.png" },
+  { name: "Gorgon", image: "images/Avenger/gorgon.png" },
+  { name: "Angra Mainyu", image: "images/Avenger/angra.png" },
+  { name: "Jeanne d'Arc (Alter)", image: "images/Avenger/jeannealter.png" },
+  { name: "Edmond Dantès", image: "images/Avenger/dante.png" },
+  { name: "Hakuno (Male)", image: "images/Mooncancer/hakunom.png" },
+  { name: "Hakuno (Female)", image: "images/Mooncancer/hakunof.png" },
+  { name: "Tenochtitlan", image: "images/Mooncancer/tenoch.png" },
+  { name: "BB (Dubai)", image: "images/Mooncancer/bbdubai.png" },
+  { name: "Ciel", image: "images/Mooncancer/ciel.png" },
+  { name: "Archetype: Earth", image: "images/Mooncancer/archtype.png" },
+  { name: "Kiara Sessyoin (Moon Cancer)", image: "images/Mooncancer/kiara.png" },
+  { name: "Jinako Carigiri", image: "images/Mooncancer/jinako.png" },
+  { name: "BB (Summer)", image: "images/Mooncancer/bbsummer.png" },
+  { name: "BB", image: "images/Mooncancer/bb.png" },
+  { name: "Kazuradrop", image: "images/Alterego/kazuradrop.png" },
+  { name: "Azuma", image: "images/Alterego/azuma.png" },
+  { name: "Tiamat", image: "images/Alterego/tiamat.png" },
+  { name: "Grigori Rasputin", image: "images/Alterego/grigori.png" },
+  { name: "Xufu", image: "images/Alterego/xufu.png" },
+  { name: "Super Bunyan", image: "images/Alterego/superbunyan.png" },
+  { name: "Taisui Xingjun", image: "images/Alterego/taisui.png" },
+  { name: "Bazett", image: "images/Alterego/bazzet.png" },
+  { name: "Abe no Seimei (Dōman)", image: "images/Alterego/doman.png" },
+  { name: "Kingprotea", image: "images/Alterego/kingprotea.png" },
+  { name: "Sitonai", image: "images/Alterego/sitonai.png" },
+  { name: "Okita Souji (Alter)", image: "images/Alterego/okitasojialter.png" },
+  { name: "Mecha Eli-chan Mk.II", image: "images/Alterego/mechaelimk2.png" },
+  { name: "Mecha Eli-chan", image: "images/Alterego/mechaeli.png" },
+  { name: "Kiara Sessyoin (Alter Ego)", image: "images/Alterego/kiaraalter.png" },
+  { name: "Passionlip", image: "images/Alterego/passion.png" },
+  { name: "Meltlilith", image: "images/Alterego/melt.png" },
+  { name: "Heroine XX (Alter)", image: "images/foreigner/heroinexxalter.png" },
+  { name: "Aoko", image: "images/foreigner/aoko.png" },
+  { name: "Wandjina", image: "images/foreigner/wandjina.png" },
+  { name: "Cnoc na Riabh", image: "images/foreigner/cnoch.png" },
+  { name: "Kukulkan", image: "images/foreigner/kukulkan.png" },
+  { name: "Koyanskaya of Darkness", image: "images/foreigner/koyandark.png" },
+  { name: "Jacques de Molay", image: "images/foreigner/molay.png" },
+  { name: "Foreigner X (Idol)", image: "images/foreigner/idolx.png" },
+  { name: "Van Gogh", image: "images/foreigner/vangogh.png" },
+  { name: "Abigail Williams (Summer)", image: "images/foreigner/abigails.png" },
+  { name: "Voyager", image: "images/foreigner/voyager.png" },
+  { name: "Yang Guifei", image: "images/foreigner/guifei.png" },
+  { name: "Heroine XX", image: "images/foreigner/heroinexx.png" },
+  { name: "Katsushika Hokusai", image: "images/foreigner/hokusaip.png" },
+  { name: "Abigail Williams", image: "images/foreigner/abigail.png" },
+  { name: "Dante", image: "images/Pretender/dante.png" },
+  { name: "Phantom Moon (Phantasmoon)", image: "images/Pretender/phantasmoon.png" },
+  { name: "Abigail Williams (Santa)", image: "images/Pretender/abigailsanta.png" },
+  { name: "Ales", image: "images/Pretender/ales.png" },
+  { name: "Cait Cu Cú", image: "images/Pretender/caitcu.png" },
+  { name: "Tenoch", image: "images/Pretender/tenoch.png" },
+  { name: "Elizabeth (Pretender)", image: "images/Pretender/eliza.png" },
+  { name: "Avalon le Fae", image: "images/Pretender/avalon.png" },
+  { name: "Hephaestion", image: "images/Pretender/hepha.png" },
+  { name: "Oberon", image: "images/Pretender/oberon.png" },
+  { name: "Beast Grand Marie", image: "images/Beast/egrandmarie.png" },
+  { name: "Space Ereshkigal", image: "images/Beast/spaceeresh.png" },
+  { name: "E-Aqua marie", image: "images/Beast/eaquamarie.png" },
+  { name: "E-Flare Marie", image: "images/Beast/eflaremarie.png" },
+  { name: "Draco", image: "images/Beast/draco.png" },
+  { name: "Beast IV", image: "images/Beast/beast4.png" },
+  { name: "Beast III/L", image: "images/Beast/beast3l.png" },
+  { name: "Beast III/R", image: "images/Beast/beast3r.png" },
+  { name: "Goetia", image: "images/Beast/goetia.png" },
+  { name: "Tiamat (Beast)", image: "images/Beast/tiamatb.png" },
+    // Tambah karakter sesukamu di sini
+  ];
+
+  const selectionDiv = document.getElementById('character-selection');
+  const startBtn = document.getElementById('start-game-btn');
+  const gameArea = document.getElementById('game-area');
+  const boardCharactersDiv = document.getElementById('board-characters');
+  const operatorCharImg = document.getElementById('operator-character');
+  const endGameBtn = document.getElementById('end-game-btn');
+
+  let selectedCharacters = new Set();
+
+  // Tampilkan semua karakter di pilihan awal
+  function showCharacterSelection() {
+    selectionDiv.innerHTML = '';
+    characters.forEach((char, idx) => {
+      const img = document.createElement('img');
+      img.src = char.image;
+      img.alt = char.name;
+      img.title = char.name;
+      img.onclick = () => {
+        if(selectedCharacters.has(char)) {
+          selectedCharacters.delete(char);
+          img.classList.remove('selected');
+        } else {
+          selectedCharacters.add(char);
+          img.classList.add('selected');
+        }
+        startBtn.disabled = selectedCharacters.size === 0;
+      };
+      selectionDiv.appendChild(img);
+    });
+  }
+
+  // Mulai game: sembunyikan pilihan, acak operator, tampilkan board & operator
+  startBtn.onclick = () => {
+    if(selectedCharacters.size === 0) return;
+
+    // Hide selection area
+    selectionDiv.style.display = 'none';
+    startBtn.style.display = 'none';
+
+    // Pilih acak operator dari selectedCharacters
+    const arr = Array.from(selectedCharacters);
+    const randomIndex = Math.floor(Math.random() * arr.length);
+    const operatorChar = arr[randomIndex];
+
+    // Tampilkan operator
+    operatorCharImg.src = operatorChar.image;
+    operatorCharImg.alt = operatorChar.name;
+    operatorCharImg.title = operatorChar.name;
+    operatorCharImg.classList.remove('dimmed');
+
+    // Tampilkan Your Board (semua karakter yang dipilih)
+    boardCharactersDiv.innerHTML = '';
+    arr.forEach(char => {
+      const img = document.createElement('img');
+      img.src = char.image;
+      img.alt = char.name;
+      img.title = char.name;
+      img.className = 'character-img';
+      img.onclick = () => {
+        img.classList.toggle('dimmed');
+      };
+      boardCharactersDiv.appendChild(img);
+    });
+
+    gameArea.style.display = 'block';
+  };
+
+  // End game: reset semua, tampilkan pemilihan karakter lagi
+  endGameBtn.onclick = () => {
+    selectedCharacters.clear();
+    startBtn.disabled = true;
+    selectionDiv.style.display = 'grid';
+    startBtn.style.display = 'inline-block';
+    gameArea.style.display = 'none';
+    showCharacterSelection();
+  };
+
+  // Inisialisasi awal
+  showCharacterSelection();
+</script>
+
+</body>
+</html>
